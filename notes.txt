@@ -1,0 +1,34 @@
+Spring in action 5th edition 
+----------------------------
+
+@SpringBootApplication is a composite application that combine three other annotations
+- @SpringBootConfiguration: designates the class as a configuaration class
+- @EnableAutoConfiguration: enables Spring Boot automatic configuaration
+- @ComponentScan: enables component scanning. This lets declare other classes
+with annotations like @Component, @Controler, @Service, and others, to have Spring automatically
+discover them and register them as components in the Spring application context.
+
+==>
+
+@RunWith(SpringRunner.class)
+@RunWith is a JUnit annotation, providing a test runnner that guides JUnit in running 
+a test.
+SpringRunner is the runner that provides for the creation of a Spring application context
+that the test run against.
+SpringRunner is an alias for SpringJUnit4ClassRunner, and was introduced in Spring 4.3 to 
+remove the assocaition with a specific version of JUnit
+
+@SpringBootTest telles JUnit to boostrap the test with  Spring Boot capabilities
+
+@WebMvcTest arranges for the test to run in the context of Spring MVC application. It sets up Spring support for testing Spring MVC.
+@WebMvcTest(HomeController.class) : arranges for HomeController to be registered in Spring MVC
+
+==>
+
+Spring Boot DevTools
+
+
+
+
+
+

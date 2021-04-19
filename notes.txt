@@ -1,6 +1,8 @@
 Spring in action 5th edition 
 ----------------------------
 
+1. Fondationnal Spring 
+
 @SpringBootApplication is a composite application that combine three other annotations
 - @SpringBootConfiguration: designates the class as a configuaration class
 - @EnableAutoConfiguration: enables Spring Boot automatic configuaration
@@ -26,9 +28,38 @@ remove the assocaition with a specific version of JUnit
 ==>
 
 Spring Boot DevTools
+- automatic application restart when code changes
+- automatic browser refresh when browser-resources changes
+- automatic disable of template caching
+- built un H2 console if H2 database is in use
 
 
+2. Developing web applications
+
+run spring boot application : mvn spring-boot:run
 
 
+@Data : Lombok annotation that generates all missing methods of a class
+@RequiredArgsConstructor
+@Slf4j : Lombok-provided annotation that, at runtime will automatically generates automatically
+an SL4J Logger in the class
+    private static finale org.slf4j.Logger log =
+        org.slf4j.LoggerFactory.getLogger(DesignTacoController.class);
+
+Thymeleaf's @{} operator is used to produce a context-relative path to the static artifacts
+that they're referencing
+
+Field Validation 
+Spring support Java's Bean Validation API or JSR-303
+Validation API and the Hibernate implementation of the Validation API are automatically added to the project as transient dependencies of Spring Boot starterd
+
+
+WebMvcConfigurer :: interface defines severals methods for configuring Spring MVC. It provides default implementation of all the methods. We just need to override the methods needed
+EX: 
+ @Override
+    public void addViewControllers(ViewControllerRegistry registry) {
+        registry.addViewController("/").setViewName("home");
+    }
+registry.addViewController("/) returns a ViewControllerRegistration object on which I can call setViewName() to specific the "home "view that the request for "/" should be forward to. 
 
 

@@ -32,7 +32,7 @@ public class JdbcTacoRepository implements TacoRepository {
         taco.setId(tacoId);
 
         // loop through ingredients to save them with tacoId to taco_ingredient table
-        for(Ingredient ingredient : taco.getIngredients()){
+        for(String ingredient : taco.getIngredients()){
             saveIngredientToTaco(ingredient, tacoId);
         }
         return taco;
@@ -40,16 +40,21 @@ public class JdbcTacoRepository implements TacoRepository {
 
 
     private long saveTacoInfo(Taco taco){
-        taco.setCreateAt(new Date());
+        taco.setCreatedAt(new Date());
+
+        // create PrepareStatementCreatorFactory to create the PrepareStatementCreator
+        PreparedStatementCreatorFactory pscFactory =  new PreparedStatementCreatorFactory(
+                "insert into Taco (name, createdAt) values (?, ?)", Types.VARCHAR, Types.TIMESTAMP
+        );
+
+        // By default, returnGeneratedKeys = false so change it to true
+        pscFactory.setReturnGeneratedKeys(true);
 
         // use PrepareStatementCreator to perform taco save to database
-        PreparedStatementCreator psc =
-                new PreparedStatementCreatorFactory(
-                        "insert into Taco (name, createAt) values (?, ?)", Types.VARCHAR, Types.TIMESTAMP
-                ).newPreparedStatementCreator(
+        PreparedStatementCreator psc =  pscFactory.newPreparedStatementCreator(
                         Arrays.asList(
                                 taco.getName(),
-                                new Timestamp(taco.getCreateAt().getTime())
+                                new Timestamp(taco.getCreatedAt().getTime())
                         )
                 );
 
@@ -57,17 +62,17 @@ public class JdbcTacoRepository implements TacoRepository {
         KeyHolder keyHolder = new GeneratedKeyHolder();
 
         // perform the save of the taco with the psc and the keyholder
-        jdbc.update(psc, keyHolder);
+        int key = jdbc.update(psc, keyHolder);
 
         return keyHolder.getKey().longValue();
     }
 
-    private void saveIngredientToTaco(Ingredient ingredient, long tacoId){
+    private void saveIngredientToTaco(String ingredient, long tacoId){
         // perform the save of ingredient and taco ids to the Taco_Ingredients database
         jdbc.update(
-                "insert into Taco_Ingredients (taco, ingredients) values (?, ?)",
+                "insert into Taco_Ingredients (taco, ingredient) values (?, ?)",
                 tacoId,
-                ingredient.getId()
+                ingredient
         );
     }
 

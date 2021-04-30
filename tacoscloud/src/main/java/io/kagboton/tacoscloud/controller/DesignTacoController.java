@@ -2,8 +2,10 @@ package io.kagboton.tacoscloud.controller;
 
 import io.kagboton.tacoscloud.domain.Ingredient;
 import io.kagboton.tacoscloud.domain.Ingredient.Type;
+import io.kagboton.tacoscloud.domain.Order;
 import io.kagboton.tacoscloud.domain.Taco;
 import io.kagboton.tacoscloud.repository.IngredientRepository;
+import io.kagboton.tacoscloud.repository.TacoRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -24,10 +26,22 @@ import java.util.stream.Collectors;
 public class DesignTacoController {
 
     private IngredientRepository ingredientRepository;
+    private TacoRepository tacoRepository;
 
     @Autowired
-    public DesignTacoController(IngredientRepository ingredientRepository) {
+    public DesignTacoController(IngredientRepository ingredientRepository, TacoRepository tacoRepository) {
         this.ingredientRepository = ingredientRepository;
+        this.tacoRepository = tacoRepository;
+    }
+
+    @ModelAttribute(name = "order")
+    public Order order(){
+        return new Order();
+    }
+
+    @ModelAttribute(name = "design")
+    public Taco taco(){
+        return new Taco();
     }
 
     @GetMapping
@@ -40,7 +54,6 @@ public class DesignTacoController {
         for(Type type : types){
             model.addAttribute(type.toString().toLowerCase(), filterByType(ingredients, type));
         }
-        model.addAttribute("design", new Taco());
         return "design";
     }
 
@@ -55,11 +68,19 @@ public class DesignTacoController {
     }
 
     @PostMapping
-    public String processDesign(@ModelAttribute("design") @Valid Taco design, Errors errors){
+    public String processDesign(@Valid Taco design, Errors errors, @ModelAttribute Order order){
         if (errors.hasErrors()){
             return "design";
         }
+
         log.info("Processing design: " + design);
+
+        // save taco design
+        Taco saved = tacoRepository.save(design);
+
+        // update order object with the design created
+        order.addDesign(saved);
+
         return "redirect:/orders/current";
     }
 }

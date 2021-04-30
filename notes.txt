@@ -34,15 +34,16 @@ Spring Boot DevTools
 - built un H2 console if H2 database is in use
 
 
-2. Developing web applications
+2. Developing web applications : Spring MVC
 
 run spring boot application : mvn spring-boot:run
+
+Spring MVC is annotation-based used to develop web front end for a Spring application
 
 
 @Data : Lombok annotation that generates all missing methods of a class
 @RequiredArgsConstructor
-@Slf4j : Lombok-provided annotation that, at runtime will automatically generates automatically
-an SL4J Logger in the class
+@Slf4j : Lombok-provided annotation that, at runtime will automatically generates an SL4J Logger in the class
     private static finale org.slf4j.Logger log =
         org.slf4j.LoggerFactory.getLogger(DesignTacoController.class);
 
@@ -50,16 +51,93 @@ Thymeleaf's @{} operator is used to produce a context-relative path to the stati
 that they're referencing
 
 Field Validation 
-Spring support Java's Bean Validation API or JSR-303
-Validation API and the Hibernate implementation of the Validation API are automatically added to the project as transient dependencies of Spring Boot starterd
+Spring MVC supports validation through the Java Bean Validation API or JSR-303 and the implementation of the Validation API such as Hibernate Validator
+Validation API and the Hibernate implementation of the Validation API are automatically added to the project as transcient dependencies of Spring Boot starters
 
+Spring Boot starters :: are the dependency descriptors.
+ - Spring Boot starters can help to reduce the number of manually added dependencies just by adding one dependency. 
 
-WebMvcConfigurer :: interface defines severals methods for configuring Spring MVC. It provides default implementation of all the methods. We just need to override the methods needed
-EX: 
+@WebConfig implements the WebMvcConfigurer interface
+WebMvcConfigurer :: interface defines severals methods for configuring Spring MVC. It provides default implementation of all the methods.
+We just need to override the methods needed
+Example to declare a view controller, we override the addViewControllers() method: 
  @Override
     public void addViewControllers(ViewControllerRegistry registry) {
         registry.addViewController("/").setViewName("home");
     }
 registry.addViewController("/) returns a ViewControllerRegistration object on which I can call setViewName() to specific the "home "view that the request for "/" should be forward to. 
 
+Template options supported but Spring Boot EnableAutoConfiguration
+- Freemarker: spring-boot-starter-freemarker
+- Groovy Templates: spring-boot-starter-groovy-templates
+- JavaServer Pages (JSP): none (provided by Tomcat or Jetty)
+- Mustache: spring-boot-starter-mustache
+- Thymeleaf: spring-boot-starter-thymleaf 
 
+Spring detects autom the template used so we can start writting templates in /src/main/resources/templates
+If we choose JSP, we should look at somewhere under /WEB-INF. JSP is only an option if we are building our application as a WAR field 
+and deploying it in a traditiona servlet container. So if we are building our application as a JAR file, there's no way to satisfy that requirement.
+
+Caching Templates: properties to enable/disable template caching. By default all are true. If we are using Spring Boot's DevTools, they will be disabled
+- Freemaker: spring.freemarker.cache
+- Groovy Templates: spring.groovy.templatee.cache
+- Mustache: spring.mustache.cache
+- Thymeleaf: spring.thymeleaf.cache 
+
+
+3. Working with data
+
+When it come to working relational data, the most common choice are JDBC and th JPA
+JDBC: Java Database Connectivity
+
+Spring supports both of these with abstractions. 
+JDBC support is rooted in the JdbcTemplate class. It makes queries easier than normal JDBC use.
+We need to add JDBC to the project classpath to use JdbcTemplate : spring-boot-starter-jdbc. We can use H2 for the database during development. 
+
+@Repository annotation is added to the class that will handle queries. 
+This annotation is one of a handful of stereotype annotations that Spring defines, including @Controller and @Component
+
+- query(): jdbc method that returns a collection of an object. It accepts the SQL for the query as well as an implementationof Spring's RowMapper for mapping each row in the result set of an object
+- queryForObject(): works like query() but returns only a single object
+- update(): inserting a row. writes or updates in the database. require a String containing the query
+
+Database schema definition: if there's a file named schema.sql in the root of the application's classpath, then the SQL in the fie will be excecuted against the database
+Spring Boot will also execute a file named data.sql from the root of the classpath when the application starts 
+The files should be placed in the src/main/resources
+
+update() method can accepts a PrepareStatementCreator and a KeyHolder
+- PrepareStatementCreator: example
+    PreparedStatementCreator psc =
+                    new PreparedStatementCreatorFactory(
+                            "insert into Taco (name, createAt) values (?, ?)", Types.VARCHAR, Types.TIMESTAMP
+                    ).newPreparedStatementCreator(
+                            Arrays.asList(
+                                    taco.getName(),
+                                    new Timestamp(taco.getCreateAt().getTime())
+                            )
+                    );
+- KeyHolder: provides a generated ID
+
+
+- @SessionAttributes("order") : The class-lvel @SessionAttributes annotation specifies any model objects like the order attribute that should be kept 
+in session and available across multiple requests
+
+- @ModelAttribute(name="taco"): ensure that an (Taco) object will be created in the model
+
+- SimpleJdbcInsert: has a couple of usefu methods for executing the insert : execute() amd executeAndReturnKey(). Both methods accept a Map<Spring, Object>, where
+the map keys correspond to the column names in the table the data is inserted into
+
+    @Autowired
+        public JdbcOrderRepository(JdbcTemplate jdbc) {
+
+            this.orderInserter = new SimpleJdbcInsert(jdbc)
+                    .withTableName("Taco_Order")
+                    .usingGeneratedKeyColumns("id");
+
+            this.orderTacoInserter = new SimpleJdbcInsert(jdbc)
+                    .withTableName("Taco_Order_Tacos");
+
+            this.objectMapper = new ObjectMapper();
+        }
+
+- ObjectMapper

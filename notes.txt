@@ -91,6 +91,9 @@ When it come to working relational data, the most common choice are JDBC and th 
 JDBC: Java Database Connectivity
 
 Spring supports both of these with abstractions. 
+
+3.1. JDBC
+
 JDBC support is rooted in the JdbcTemplate class. It makes queries easier than normal JDBC use.
 We need to add JDBC to the project classpath to use JdbcTemplate : spring-boot-starter-jdbc. We can use H2 for the database during development. 
 
@@ -141,3 +144,10 @@ the map keys correspond to the column names in the table the data is inserted in
         }
 
 - ObjectMapper
+
+- @SuppressWarnings("unchecked")
+
+- SessionStatus
+
+
+3.2. JPA

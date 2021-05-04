@@ -143,11 +143,48 @@ the map keys correspond to the column names in the table the data is inserted in
             this.objectMapper = new ObjectMapper();
         }
 
-- ObjectMapper
+- ObjectMapper or Jackson ObjectMapper: java class to serialize Java objects into JSON and deserialize JSON string into Java objects.
 
-- @SuppressWarnings("unchecked")
+- @SuppressWarnings("unchecked"): This annotation allows us to say which kinds of warnings to ignore. To disable compilation warnings
+  While warning types can vary by compiler vendor, the two most common are deprecation and unchecked.
+      - deprecation: to suppress warnings relative to deprecated method or type
+      - unchecked: to suppress warnings relative to unchecked operations. Tells the compiler to ignore when we're using raw types
 
-- SessionStatus
+- org.springframework.web.bind.support.SessionStatus: Simple interface that can be injected into handler methods, allowing them to signal that their session processing is complete. 
+- @SessionAttributes: Annotation that indicates the session attributes that a specific handler uses.
+
 
 
 3.2. JPA
+
+A few of the most popular Spring Data projects include these:
+- Spring Data JPA - JPA persistence against a relational database
+- Spring Data MongoDB
+- Spring Data Neo4J
+- Spring Data Redis
+- Spring Data Cassandra
+
+
+Spring Data JPA starter dependency
+
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-data-jpa</artifactId>
+</dependency>
+
+This starter dependency brings Spring Data JPA with the Hibernate as the JPA dependency. EclipsLink is another implementation of JPA library.
+
+JPA requires that the entities have a no arguments constructor. We can use @NoArgsConstructor from Lombok. As we dont have to use it, it should be private.
+We should then set access attribute to AccessLevel.PRIVATE. In the case that we have final properties that must me set, we should set force attribute to true
+Lombok @RequiredArgsConstructor ensures that we'll have a required arguments constructor
+
+With JPA repositories version, the repositories need to extends the org.springframework.data.repository.CrudRepository interface.
+The first parameter ot CrudRepository interface is the type of the entity to persist, the second parameter is the type of the entity ID.
+EX: public TacoRepository extends CrudRepository<Taco, Long> {}
+We dont need any implementation. Spring Data JPA automatically generates an implementation on the fly when the application starts.
+
+However we can customise the JPA repositories
+
+
+
+4. Spring Security

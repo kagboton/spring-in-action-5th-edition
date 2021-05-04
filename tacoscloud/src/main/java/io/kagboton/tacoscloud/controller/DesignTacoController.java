@@ -15,7 +15,6 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -25,7 +24,7 @@ import java.util.stream.Collectors;
 @SessionAttributes("order")
 public class DesignTacoController {
 
-    private IngredientRepository ingredientRepository;
+    private final IngredientRepository ingredientRepository;
     private TacoRepository tacoRepository;
 
     @Autowired
@@ -57,23 +56,12 @@ public class DesignTacoController {
         return "design";
     }
 
-    private List<Ingredient> filterByType(
-           List<Ingredient> ingredients, Type type){
-
-        return  ingredients
-                .stream()
-                .filter(x -> x.getType().equals(type))
-                .collect(Collectors.toList());
-
-    }
 
     @PostMapping
     public String processDesign(@Valid Taco design, Errors errors, @ModelAttribute Order order){
         if (errors.hasErrors()){
             return "design";
         }
-
-        log.info("Processing design: " + design);
 
         // save taco design
         Taco saved = tacoRepository.save(design);
@@ -82,5 +70,14 @@ public class DesignTacoController {
         order.addDesign(saved);
 
         return "redirect:/orders/current";
+    }
+
+    private List<Ingredient> filterByType(
+            List<Ingredient> ingredients, Type type){
+
+        return  ingredients
+                .stream()
+                .filter(x -> x.getType().equals(type))
+                .collect(Collectors.toList());
     }
 }

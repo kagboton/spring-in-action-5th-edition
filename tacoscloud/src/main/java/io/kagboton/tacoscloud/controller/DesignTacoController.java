@@ -27,6 +27,11 @@ public class DesignTacoController {
     private final IngredientRepository ingredientRepository;
     private TacoRepository tacoRepository;
 
+
+    public DesignTacoController(IngredientRepository ingredientRepository) {
+        this.ingredientRepository = ingredientRepository;
+    }
+
     @Autowired
     public DesignTacoController(IngredientRepository ingredientRepository, TacoRepository tacoRepository) {
         this.ingredientRepository = ingredientRepository;

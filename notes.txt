@@ -185,6 +185,17 @@ We dont need any implementation. Spring Data JPA automatically generates an impl
 
 However we can customise the JPA repositories
 
+Repository methods are composed of a verb, an optional subject, the word By, and a predicate. 
+- findByDeliveryZip (Spring deliveryZip): find(verb)-(no subject)By-DeliveryZip(predicate)
+- readOrderByDeliveryZipAndPlacedAtBetween(String deliveryZip, Date startDate, Data endDate): read == find == get
 
+Spring Data method signature include a lot of operators. 
+
+We can also use @Query to perform any query we want. 
+Ex: 
+@Query("Order o where o.deliveryCity='Seattle'")
+List<Order> readOrderDeliveredInSeattle()
+
+We can place OrderBy at the end of the method name to sort the results by a specified column: findByDeliveryCityOrderByDeliveryTO(String city)
 
 4. Spring Security

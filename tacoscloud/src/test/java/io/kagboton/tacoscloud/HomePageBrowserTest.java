@@ -44,7 +44,7 @@ public class HomePageBrowserTest {
         browser.get(homePage);
 
         String titleText = browser.getTitle();
-        Assert.assertEquals("Tacos Cloud", titleText);
+        Assert.assertEquals("Taco Cloud", titleText);
 
         String h1Text = browser.findElement(By.tagName("h1")).getText();
         Assert.assertEquals("Welcome to...", h1Text);

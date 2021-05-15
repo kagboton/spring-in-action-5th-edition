@@ -1,6 +1,7 @@
 package io.kagboton.tacoscloud;
 
 import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -15,9 +16,11 @@ import java.util.Optional;
 import io.kagboton.tacoscloud.controller.DesignTacoController;
 import io.kagboton.tacoscloud.domain.Ingredient;
 import io.kagboton.tacoscloud.domain.Taco;
+import io.kagboton.tacoscloud.domain.User;
 import io.kagboton.tacoscloud.repository.IngredientRepository;
 import io.kagboton.tacoscloud.repository.OrderRepository;
 import io.kagboton.tacoscloud.repository.TacoRepository;
+import io.kagboton.tacoscloud.repository.UserRepository;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -25,6 +28,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -48,6 +52,9 @@ public class DesignTacoControllerTest {
 
   @MockBean
   private OrderRepository orderRepository;
+
+  @MockBean
+  private UserRepository userRepository;
 
   @Before
   public void setup() {
@@ -79,10 +86,12 @@ public class DesignTacoControllerTest {
         new Ingredient("GRBF", "Ground Beef", Ingredient.Type.PROTEIN),
         new Ingredient("CHED", "Cheddar", Ingredient.Type.CHEESE)
   ));
-
+    when(userRepository.findByUsername("testuser"))
+            .thenReturn(new User("testuser", "testpass", "Test User", "123 Street", "Someville", "CO", "12345", "123-123-1234"));
   }
 
   @Test
+  @WithMockUser(username="testuser", password="testpass")
   public void testShowDesignForm() throws Exception {
     mockMvc.perform(get("/design"))
         .andExpect(status().isOk())
@@ -95,11 +104,12 @@ public class DesignTacoControllerTest {
   }
 
   @Test
+  @WithMockUser(username="testuser", password="testpass", authorities="ROLE_USER")
   public void processDesign() throws Exception {
     when(designRepository.save(design))
         .thenReturn(design);
 
-    mockMvc.perform(post("/design")
+    mockMvc.perform(post("/design").with(csrf())
         .content("name=Test+Taco&ingredients=FLTO,GRBF,CHED")
         .contentType(MediaType.APPLICATION_FORM_URLENCODED))
         .andExpect(status().is3xxRedirection())

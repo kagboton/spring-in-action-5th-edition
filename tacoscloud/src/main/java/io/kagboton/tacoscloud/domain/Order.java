@@ -17,21 +17,24 @@ import java.util.List;
 @Table(name="Taco_Order")
 public class Order implements Serializable {
 
-    private static final long serialVersionUID = 730100599733231478L;
+    private static final long serialVersionUID = 1L;
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
 
-    @NotBlank(message = "Name is required")
+    @NotBlank(message="Delivery name is required")
     private String deliveryName;
 
-    @NotBlank(message = "Name is required")
-    private String deliveryStreet;
     @NotBlank(message = "Street is required")
-    private String deliveryCity;
+    private String deliveryStreet;
+
     @NotBlank(message = "City is required")
+    private String deliveryCity;
+
+    @NotBlank(message = "State is required")
     private String deliveryState;
+
     @NotBlank(message = "Zip code is required")
     private String deliveryZip;
 

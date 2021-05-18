@@ -4,8 +4,8 @@ Spring in action 5th edition
 1. Fondationnal Spring 
 
 @SpringBootApplication is a composite application that combine three other annotations
-- @SpringBootConfiguration: designates the class as a configuaration class
-- @EnableAutoConfiguration: enables Spring Boot automatic configuaration
+- @SpringBootConfiguration: designates the class as a configuration class
+- @EnableAutoConfiguration: enables Spring Boot automatic configuration
 - @ComponentScan: enables component scanning. This lets declare other classes
 with annotations like @Component, @Controler, @Service, and others, to have Spring automatically
 discover them and register them as components in the Spring application context.
@@ -197,3 +197,392 @@ Ex:
 List<Order> readOrderDeliveredInSeattle()
 
 We can place OrderBy at the end of the method name to sort the results by a specified column: findByDeliveryCityOrderByDeliveryTO(String city)
+
+
+
+4. Spring Security
+
+To enable Spring Boot Security, we have to add the Security starter dependency
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-security</artifactId>
+</dependency>
+
+With this in place, we have only few security features for our application (no specific role or authorities, no login page, only one user, the username is "user")
+To properly secured our application, we need at least to configure Spring security to :
+- have a login page, 
+- provide multiple users and enable a registration page
+- apply different security rules for different request paths.
+
+Configuring Spring Security
+
+@Configuration
+@EnableWebSecurity
+public class SecurityConfig extends WebSecurityConfigurerAdapter {
+}
+
+Spring Security offers different options for Configuring a user store : 
+- An in-memory user store : good for testing purpose of for a very simple applications
+- A JDBC-based user store
+- An LDAP-backed user store
+- A custom user details Service
+
+We can configure the user store by overriding a "configure()" method defined in the WebSecurityConfigurerAdapter
+
+@Override
+protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+       
+}
+
+AuthenticationManagerBuilder employes a builder-style API to configure authentication details
+
+1. Authentication 
+2. Authorization
+
+In-memory user store
+auth
+    .inMemoryAuthentication()
+      .withUser("buzz")
+        .password("{noop}infinity")
+        .authorities("ROLE_USER");
+
+JDBC-based user store 
+
+auth
+    .jdbcAuthentication()
+      .dataSource(dataSource)
+      .usersByUsernameQuery(
+          "select username, password, enabled from Users " +
+          "where username=?")
+      .authoritiesByUsernameQuery(
+          "select username, authority from UserAuthorities " +
+          "where username=?")
+      .passwordEncoder(new StandardPasswordEncoder("53cr3t");
+
+To encode password, we have to use the passwordEncoder() method. It accepts any implementation of Spring Security's 
+PasswordEncoder interface.
+Here some implementations:
+- BCryptPasswordEncoder: applies bcrypt strong hashing encryption
+- NoOpPasswordEncoder: applies no encoding (DEPRECATED)
+- Pbkdf2PasswordEncoder: applies PBKDF2 encryption
+- SCryptPasswordEncoder: application scrypt hashing encryption
+- StandardPasswordEncoder: applies SHA-256 hashing encryption (DEPRECATED) 
+
+We can also create our own implementation of PasswordEncoder if those dont meet our needs.
+
+public interface PasswordEncoder {
+  String encode(CharSequence rawPassword);
+  boolean matches(CharSequence rawPassword, String encodedPassword);
+}
+
+We have to note that the password inside the datebase is never decoded. The user password is encoded, using the samen algorithme and compared
+to the value inside the database. The comparaison is performed by the methode Encoder's "matches()" method.
+
+LDAP-backed user store
+
+.userSearchFilter("(uid={0})")
+.groupSearchFilter("member={0}")
+.userSearchBase("ou=people") // specify that users be searched for where the organizational unit is people
+.groupSearchBase"ou=groups") // specify that groups be searched for where the organizational unit is groups
+.passwordCompare()
+.passwordEncoder(new BCryptPasswordEncoder())
+.passwordAttribute("passcode")
+.contextSource() // returns a ContextSourceBuilder
+        .url("ldap://tacocloud.com:389/dc=tacocloud,dc=com");
+        or
+.contextSource()
+        .root("dc=tacocloud,dc=com") // to use the Spring Security embeded server
+        .ldif("classpath:users.ldif"); // specify whith LDIF file to get
+
+- userSearchFilter() and groupSearchFilter() are used to provide filters for the base LDAP queries, which are used to search users and groups
+
+By defaut the search will be done from the root of the LDAP hierarchy, that why the users and groups are empty
+
+- userSearchBase() and groupSearchBase() methodes provide a base for query for finding user and finding groups. 
+
+By default strategy for authenticationg against LDAP is to perform a bind operation
+
+- passwordCompare() - if we want to do password comparison instead of bind operation. 
+- passwordAttribute("passcode"); -  to specify the password attribute name if the password is in a different attribute
+- contextSource() - to specify the LDAP server location if the server is not on localhost listening on the port 33389 (by default)
+
+When LDAP starts it will attempt to load data from any LDIF (LDAP Data Interchange Format) files that it can find in the classpath
+
+In addition of those user store, we need to create and configure a custom user details service.
+
+Summary
+------- 
+Step 1: enable spring security by adding the spring security starter dependency
+Step 2: configure Spring Security by creating the Security config class and overriding configure() method with the appropriate user store
+Step 3: customizing user authentication by creating the user class and repository. The user class implements the UserDetails Spring Security class
+Step 4: create and implement a user details service
+Step 5: add the userdetails service to the configure method on Spring Security config class. 
+        auth.userDetailsService(userDetailsService)
+Step 6: add a user registration controller, the registration view (the form), the RegistrationFrom class that have the same field as 
+        User class and a method that returns a User with encored password
+
+Step 7: securing web requests. Allow user to access registration page. To do so, we have to implement the configure(HttpSecurity http) method. 
+        We shoud configure, the custom login page, logout page, cross-sit request forgery protection.
+
+        protected void configure(HttpSecurity http) throws Exception {
+                http
+                .authorizeRequests() // returns and object ExpressionInterceptUrlRegistry
+                .antMatchers("/design", "/orders")
+                .hasRole("ROLE_USER")
+                .antMatchers("/", "/**").permitAll()
+                .and()
+                .formLogin()
+                .loginPage("/login)
+                .loginProcessingUrl("/authenticate") // to customize the login path
+                .usernameParameter("user") // to customize username
+                .passwordParameter("pwd") // to customize password
+                .defaultSuccessUrl("/design") // to customize default successful url
+                .and()
+                .logout() // set up a security filter that interceps POST requests to /logout
+                .logoutSuccessUrl("/") // custom post-logout landing page
+        }
+        
+        The order of these rules is important. 
+        - security rules declared first. If we swap the permitAll rule to come first,  the rule for /design and /orders would have no effect
+
+Configuration methods to define how a path is to be secured: 
+
+- access(String)	Allows access if the given SpEL expression evaluates to true
+- anonymous()	Allows access to anonymous users
+- authenticated()	Allows access to authenticated users
+- denyAll()	Denies access unconditionally
+- fullyAuthenticated()	Allows access if the user is fully authenticated (not remembered)
+- hasAnyAuthority(String...)	Allows access if the user has any of the given authorities
+- hasAnyRole(String...)	Allows access if the user has any of the given roles
+- hasAuthority(String)	Allows access if the user has the given authority
+- hasIpAddress(String)	Allows access if the request comes from the given IP address
+- hasRole(String)	Allows access if the user has the given role
+- not()	Negates the effect of any of the other access methods
+- permitAll()	Allows access unconditionally
+- rememberMe()	Allows access for users who are authenticated via remember-me
+
+Spring Security extensions to the Spring Expression Language:
+
+- authentication	The user’s authentication object
+- denyAll	Always evaluates to false
+- hasAnyRole(list of roles)	true if the user has any of the given roles
+- hasRole(role)	true if the user has the given role
+- hasIpAddress(IP address)	true if the request comes from the given IP address
+- isAnonymous()	true if the user is anonymous
+- isAuthenticated()	true if the user is authenticated
+- isFullyAuthenticated()	true if the user is fully authenticated (not authenticated with remember-me)
+- isRememberMe()	true if the user was authenticated via remember-me
+- permitAll	Always evaluates to true
+- principal	The user’s principal object
+
+
+The login page 
+        By default, Spring Security listens for login request at /login and expects that the username and password fields be named username and password.
+        By default successful login will take the user to the page that they were navigating to when Spring Security determine that they need to log in
+        If the user were directly navigating to /login, a successful login would take them to the root path
+
+Loggin out 
+    Were click on logout, the users session will be cleared, and they will be logout of the application .
+    By default, they'll be redirected to the login page where they can log in again 
+
+
+Cross-Site Request Forgery
+        A common security attack
+        Utilise un faux formulaire qui soumet automatique les informations du client vers une application qui permettra aux hackeurs de prendre la main
+
+        A CSRF token is generated to by the applications to protect again such attacks in a hidden field
+        When the form is submitted, the token is sent back to the server along with the rest of the data
+        The request is intercepted byt the server and compared with the token that was originally generated.
+
+        <input type="hidden" name="_csrf" th:value="${_csrf.token}"/>
+
+        We dont need to manually add this hidden field if we are useing Spring MVC's JSP or thymeleaf with Spring Security dialect
+
+        With Thymeleaf, we have to make sure that one of the attributes of the <form> element is prefixed as a Thymeleaf attribute
+        <form method="POST" th:action="@{/login}" id="loginForm">
+
+        To disable CSRF :
+                .and()
+                    .csrf()
+                    .disable()
+
+Obtain information about the logged-in user
+        There a several ways to determine who the user is
+        - inject a Principal object into the controller
+        - inject an Authentication object inot the controller method
+        - use SecurityContextHolder to get at the security context
+        - use an @AuthenticationPrincipal annoted method
+
+============== Principal
+        @PostMapping
+        public String processOrder(@Valid Order order, Errors errors,
+                SessionStatus sessionStatus,
+                Principal principal) {
+
+        User user = userRepository.findByUsername(
+                principal.getName());
+        order.setUser(user);
+
+        }
+============== Authentication
+        @PostMapping
+        public String processOrder(@Valid Order order, Errors errors,
+                SessionStatus sessionStatus,
+                Authentication authentication) {
+
+        ...
+
+        User user = (User) authentication.getPrincipal();
+        order.setUser(user);
+
+        ...
+
+        }
+=============== @AuthenticationPrincipal
+        @PostMapping
+        public String processOrder(@Valid Order order, Errors errors,
+                SessionStatus sessionStatus,
+                @AuthenticationPrincipal User user) {
+
+        }
+
+=============== SecurityContextHolder.getContext returns SecurityContext object
+        Authentication authentication =
+        SecurityContextHolder.getContext().getAuthentication();
+        User user = (User) authentication.getPrincipal()
+
+
+
+
+
+5. Working with configuration properties
+
+Autoconfiguraton simplifies Spring Application development.
+Configuration properties are properties on beans in the Spring application context that can be set from one of several property sources
+including JVM system properties, command-line arguments, and environment variables.
+
+How to employ configuration properties to fine-tune what Spring Boot automatically configures ?
+
+2 different kinds of configurations in Spring
+- bean wiring: config that declares application components to be created as beans in the Spring application context and how they sould be injected into each other 
+- property injection: config that sets values on bean in the Spring application context
+
+These 2 types of configuration are declared explicitly in the same place in XML and java-based configuration.
+In java configuration, the @Bean-annoted method instantiate a bean and also set values to its properties.
+Ex:
+        @Bean
+        public DataSource dataSource() {
+        return new EmbeddedDataSourceBuilder()
+        .setType(H2)
+        .addScript("taco_schema.sql")
+        .addScripts("user_data.sql", "ingredient_data.sql")
+        .build();
+        }
+Spring boot configuration make this unnecessary. If the Datasource dependency is present in the run-time classpath, Spring Boot
+creates an appropriate bean in the Spring application context. 
+If we need more specific config, its where configuration properties come in.
+
+
+Where configuration properties come from ?
+
+The Spring environment pulls from several property sources: 
+- JVM system properties, 
+- command-line arguments,
+- environment variables, 
+- application property configuration files
+
+The Spring environment aggregates those properties into a single source and make them available to beans in the application context.
+The beans that are automatically configured by Spring Boot are all configurable by properties drawn from the Spring environment.
+
+src/main/resources/application.properties or application.yml is the file where we can set application properties
+EX: make the servlet container to listen for requests on some port
+server:
+  port: 9090
+
+we can also use command line to specify the port 
+$ java -jar tacocloud.jar --server.port=9090
+
+we can also set environment variables
+$ export SERVER_PORT = 9090
+
+
+
+Configuring a data source
+
+spring:
+  datasource:
+    url: jdbc:mysql://localhost/tacocloud
+    username: tacodb
+    password: tacopassword
+    driver-class-name: com.mysql.jdbc.Driver
+
+We dont need to specify tue driver class name, Spring can figure it out  from the structure of the database url
+The DataSource bean will be pooled using Tomcat’s JDBC connection pool if it’s available on the classpath. 
+If not, Spring Boot looks for and uses one of these other connection pool implementations on the classpath:
+- HikariCP
+- Commons DBCP 2
+
+These are the only connection pool options available through autoconfiguration,
+
+This is the way to specify the database initialization scripts to run when the application starts. 
+spring:
+  datasource:
+    schema:
+    - order-schema.sql
+    - ingredient-schema.sql
+    - taco-schema.sql
+    - user-schema.sql
+    data:
+    - ingredients.sql
+
+Configuring the embedded server
+
+The server will start on a randomly chosen available port
+server:
+  port: 0
+
+One of the most common things you’ll need to do with the underlying container is to set it up to handle HTTPS requests.
+To do that, the first thing you must do is create a keystore using the JDK’s "keytool" command-line utility:
+
+$ keytool -keystore mykeys.jks -genkey -alias tomcat -keyalg RSA
+
+We must follow the instruction and after that set a few properties to enable HTTPS in the embedded server.
+
+server:
+  port: 8443
+  ssl:
+    key-store: file://path/to/mykeys.jks
+    key-store-password: letmein
+    key-password: letmein
+
+The port 8443 is a common choice for development HTTPS.
+Here we are loading the key-store from the filesystem. If we package the server within the application JAR file, we should use a classpath: 
+
+Configuring logging
+
+By defaut, Spring Boot configures logging via Logback (http://logback.qos.ch) to write to the console at the INFO level/
+logback.xml at the root of the classpath () for full control over the logging Configuration
+
+The most common changes you’ll make to a logging configuration are to change the logging levels and perhaps to specify a file where 
+the logs should be written. 
+With Spring Both configure properties we can make all those changes without having to create logback.xml file 
+
+Ex: set the root logging level to WARN, but log Spring Security logs at a DEBUG level, 
+write the log entries to the file TacoCloud.log at /var/logs/. We ahev to make sure the application has write permission to /var/logs/. 
+The log files rotate once they reach 10MB in serialize
+
+logging:
+  path: /var/logs/
+  file: TacoCloud.log
+  level:
+    root: WARN
+    org:
+      springframework:
+        security: DEBUG
+
+
+Using special property values
+Ex: use the value of spring.application.name property to set another property called greeting.welcome
+greeting:
+  welcome: ${spring.application.name}
+

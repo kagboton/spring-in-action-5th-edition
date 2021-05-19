@@ -586,3 +586,4 @@ Ex: use the value of spring.application.name property to set another property ca
 greeting:
   welcome: ${spring.application.name}
 
+

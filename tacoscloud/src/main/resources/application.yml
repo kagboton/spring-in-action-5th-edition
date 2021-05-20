@@ -1,0 +1,12 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;
+  jpa:
+    show-sql: true
+
+server:
+  port: 9090
+
+taco:
+  orders:
+    pageSize: 10

@@ -516,7 +516,7 @@ spring:
     password: tacopassword
     driver-class-name: com.mysql.jdbc.Driver
 
-We dont need to specify tue driver class name, Spring can figure it out  from the structure of the database url
+We dont need to specify the driver class name, Spring can figure it out from the structure of the database url
 The DataSource bean will be pooled using Tomcat’s JDBC connection pool if it’s available on the classpath. 
 If not, Spring Boot looks for and uses one of these other connection pool implementations on the classpath:
 - HikariCP
@@ -556,7 +556,7 @@ server:
     key-password: letmein
 
 The port 8443 is a common choice for development HTTPS.
-Here we are loading the key-store from the filesystem. If we package the server within the application JAR file, we should use a classpath: 
+Here we are loading the key-store from the filesystem. If we package the server within the application JAR file, we should use a "classpath:" 
 
 Configuring logging
 
@@ -582,8 +582,153 @@ logging:
 
 
 Using special property values
+To use set a property to echo the value of another property, we could use the ${} placeholder.
 Ex: use the value of spring.application.name property to set another property called greeting.welcome
 greeting:
   welcome: ${spring.application.name}
 
 
+Creating your own configuration properties
+Configuration properties are nothing more than properties of beans that have been designated to accept configureations from Spring's environment abstraction.
+To support property injection of configuration properties, Spring Boot provides the @ConfigurationProperties annotation. 
+When placed on any Spring bean, it specifies that the properties of that bean can be injected from properties in the Spring environment.
+
+Ex: we have this method inside a controller
+
+@GetMapping
+    public String ordersForUser(@AuthenticationPrincipal User user, Model model){ // get an user orders
+        Pageable pageable = (Pageable) PageRequest.of(0, 20);
+        model.addAttribute("orders", orderRepository.findByUserOrderByPlacedAtDesc(user, pageable));
+        return "orderList";
+}
+
+Pageable is Spring Data’s way of selecting some subset of the results by a page number and page size. 
+In our example the pageable request the fist page (page 0) with a page size of 20 to get up to 20 of the most recently placed orders for the user
+Rader than hardcode the size, we can set it with a custom configuration property. 
+To do that we have to add the new property in the controller and annotat it with @ConfigurationProperties like this. 
+
+
+@Controller
+...
+...
+@ConfigurationProperties(prefix = "taco.orders")
+public class OrderController {
+
+    private int pageSize;
+
+    public void setPageSize(int pageSize) {
+        this.pageSize = pageSize;
+    }
+
+
+    ...
+
+    @GetMapping
+    public String ordersForUser(@AuthenticationPrincipal User user, Model model){ // get an user orders
+        Pageable pageable = (Pageable) PageRequest.of(0, pageSize);
+        model.addAttribute("orders", orderRepository.findByUserOrderByPlacedAtDesc(user, pageable));
+        return "orderList";
+    }
+
+}
+
+We can now use taco.orders.pageSize in application.properties/application.yml file
+
+taco:
+  orders:
+    pageSize: 10
+
+ or as an environment variable :  $ export TACO_ORDERS_PAGESIZE=10
+
+
+
+@ConfigurationProperties are in fact often placed on beans whose sole purpose in the application is to be holders of configuration data.
+This keeps configuration-specific details out of the controllers and other application classes.
+It also makes it easy to share common configuration properties among several beans that may make use of that information.
+
+
+Declaring configuration property metadata
+Depending on your IDE, you may have noticed that the taco.orders.pageSize entry in application.yml (or application.properties) has a warning saying something like Unknown Property ‘taco’.
+This warning appears because there’s missing metadata concerning the configuration property you just created.
+Configuration property metadata is completely optional and doesn’t prevent configuration properties from working. 
+But the metadata can be useful for providing some minimal documentation around the configuration properties, especially in the IDE.
+
+To create metadata for our custom configuration properties, we’ll need to create a file under the META-INF (for example, 
+in the project under src/main/resources/META-INF) named additional-spring-configuration-metadata.json.
+
+Ex:
+
+{
+  "properties": [
+    {
+      "name": "taco.orders.page-size",
+      "type": "java.lang.String",
+      "description":
+      "Sets the maximum number of orders to display in a list."
+    }
+  ]
+}
+
+Spring Boot’s flexible property naming allows for variations in property names such that taco.orders.page-size is equivalent to taco.orders.pageSize.
+
+Now we need to configure different properties for different development environment
+
+
+Configuring with profiles
+
+When applications are deployed to different run-time environments, usually some configuration details differ. 
+One way to configure properties uniquely in one environment over another is to use environment variables to specify configuration properties instead of defining them in application.properties and application.yml.
+
+For instance, during development you can lean on the autoconfigured embedded H2 database. But in production you can set database configuration properties as environment variables like this:
+% export SPRING_DATASOURCE_URL=jdbc:mysql://localhost/tacocloud
+% export SPRING_DATASOURCE_USERNAME=tacouser
+% export SPRING_DATASOURCE_PASSWORD=tacopassword
+
+This is a way to do but its not the good way. We will use instead Spring profiles.
+Profiles are a type of conditional configuration where different beans, configuration classes, and configuration properties are applied or ignored based on what profiles are active at runtime.
+
+
+One way to define profile-specific properties is to create yet another YAML or properties file containing only the properties for production. 
+The name of the file should follow this convention: application-{profile name}.yml or application-{profile name}.properties
+
+Another way to specify profile-specific properties works only with YAML configuration. It involves placing profile-specific properties
+ alongside non-profiled properties in application.yml, separated by three hyphens and the spring.profiles property to name the profile. 
+
+Ex: before the hyphens : properties common to all profiles or default. after the hyphens: properties to production profile
+logging:
+  level:
+    tacos: DEBUG
+
+---
+spring:
+  profiles: prod
+
+  datasource:
+    url: jdbc:mysql://localhost/tacocloud
+    username: tacouser
+    password: tacopassword
+
+logging:
+  level:
+    tacos: WARN
+
+Activating profiles
+
+Setting profile-specific properties will do no good unless those profiles are active.   
+All it takes to make a profile active is to include it in the list of profile names given to the spring.profiles.active property.
+Ex: 
+spring:
+  profiles:
+    active:
+    - prod
+
+But that’s perhaps the worst possible way to set an active profile. If we set the active profile in application.yml, then that profile becomes the default profile,
+and we achieve none of the benefits of using profiles to separate the production-specific properties from development properties. 
+Instead, the recommended way to set the active profile(s) is with environment variables. 
+
+Ex: % export SPRING_PROFILES_ACTIVE=prod 
+Any applications deployed to that machine will have the prod profile active and the corresponding configuration properties would take precedence over the properties in the default profile.
+
+We can also  set the active profile with a command-line argument like this: % java -jar taco-cloud.jar --spring.profiles.active=prod
+
+We can  specify more than one active profile: % export SPRING_PROFILES_ACTIVE=prod,audit,ha

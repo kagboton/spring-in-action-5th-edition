@@ -4,13 +4,19 @@ package io.kagboton.tacoscloud.controller;
 import io.kagboton.tacoscloud.domain.Order;
 import io.kagboton.tacoscloud.domain.User;
 import io.kagboton.tacoscloud.repository.OrderRepository;
+import io.kagboton.tacoscloud.utils.OrdersProps;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
 import org.springframework.validation.Errors;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.bind.support.SessionStatus;
 
 import javax.validation.Valid;
+import java.awt.print.Pageable;
 
 
 @Controller
@@ -19,9 +25,11 @@ import javax.validation.Valid;
 public class OrderController {
 
     private OrderRepository orderRepository;
+    private OrdersProps ordersProps;
 
-    public OrderController(OrderRepository orderRepository) {
+    public OrderController(OrderRepository orderRepository, OrdersProps ordersProps) {
         this.orderRepository = orderRepository;
+        this.ordersProps = ordersProps;
     }
 
     @GetMapping("/current")
@@ -62,5 +70,12 @@ public class OrderController {
         sessionStatus.setComplete();
 
         return "redirect:/";
+    }
+
+    @GetMapping
+    public String ordersForUser(@AuthenticationPrincipal User user, Model model){ // get an user orders
+        Pageable pageable = (Pageable) PageRequest.of(0, ordersProps.getPageSize());
+        model.addAttribute("orders", orderRepository.findByUserOrderByPlacedAtDesc(user, pageable));
+        return "orderList";
     }
 }

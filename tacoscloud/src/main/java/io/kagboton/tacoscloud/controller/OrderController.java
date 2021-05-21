@@ -5,8 +5,6 @@ import io.kagboton.tacoscloud.domain.Order;
 import io.kagboton.tacoscloud.domain.User;
 import io.kagboton.tacoscloud.repository.OrderRepository;
 import io.kagboton.tacoscloud.utils.OrdersProps;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
@@ -16,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.bind.support.SessionStatus;
 
 import javax.validation.Valid;
-import java.awt.print.Pageable;
+import org.springframework.data.domain.Pageable;
 
 
 @Controller
@@ -74,7 +72,7 @@ public class OrderController {
 
     @GetMapping
     public String ordersForUser(@AuthenticationPrincipal User user, Model model){ // get an user orders
-        Pageable pageable = (Pageable) PageRequest.of(0, ordersProps.getPageSize());
+        Pageable pageable = PageRequest.of(0, ordersProps.getPageSize());
         model.addAttribute("orders", orderRepository.findByUserOrderByPlacedAtDesc(user, pageable));
         return "orderList";
     }

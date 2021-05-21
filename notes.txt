@@ -732,3 +732,42 @@ Any applications deployed to that machine will have the prod profile active and 
 We can also  set the active profile with a command-line argument like this: % java -jar taco-cloud.jar --spring.profiles.active=prod
 
 We can  specify more than one active profile: % export SPRING_PROFILES_ACTIVE=prod,audit,ha
+In Yaml : 
+spring:
+  profiles:
+    active:
+    - prod
+    - audit
+    - ha
+
+Cloud Foundry
+If we deploy a Spring application to Cloud Foundry, a profile named cloud is automatically activated for you. 
+If Cloud Foundry is our production environment, we'll want to be sure to specify production-specific properties under the cloud profile.
+
+
+Conditionally creating beans with profiles
+Sometimes it’s useful to provide a unique set of beans for different profiles.
+The @Profile annotation can designate beans as only being applicable to a given profile.
+
+Ex: the CommandLineRunner created if either the dev profile or qa profile is active. 
+@Bean
+@Profile("dev", "qa")
+public CommandLineRunner dataLoader(IngredientRepository repo,
+      UserRepository userRepo, PasswordEncoder encoder) {
+
+  ...
+
+}
+
+Another ex : CommandLineRunner bean were always created unless the prod profile is active. Here, the exclamation mark (!) negates the profile name.
+@Bean
+@Profile("!prod")
+public CommandLineRunner dataLoader(IngredientRepository repo,
+      UserRepository userRepo, PasswordEncoder encoder) {
+
+  ...
+
+}
+
+It’s also possible to use @Profile on an entire @Configuration-annotated class.
+

@@ -5,8 +5,12 @@ spring:
     show-sql: true
 
 server:
-  port: 909
+  port: 9090
 
 taco:
   orders:
     pageSize: 10
+
+  discount:
+    codes:
+      abcdef: 10

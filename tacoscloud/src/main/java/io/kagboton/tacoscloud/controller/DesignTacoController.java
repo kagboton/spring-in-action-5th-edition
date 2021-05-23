@@ -29,9 +29,6 @@ public class DesignTacoController {
 
     private TacoRepository tacoRepository;
 
-    @Value("${server.port}")
-    private String serverPort;
-
     @Autowired
     public DesignTacoController(TacoRepository tacoRepository) {
         this.tacoRepository = tacoRepository;
@@ -52,7 +49,9 @@ public class DesignTacoController {
         Resources<Resource<Taco>> recentResources = Resources.wrap(tacos);
 
         recentResources.add(
-                new Link("http://localhost:" + serverPort +"/design/recent", "recents"));
+                ControllerLinkBuilder.linkTo(DesignTacoController.class)
+                        .slash("recent")
+                        .withRel("recents")); // dynamic create links with ControllerLinkBuilder
 
         return recentResources;
     }

@@ -3,14 +3,24 @@ package io.kagboton.tacoscloud.controller;
 import io.kagboton.tacoscloud.domain.Taco;
 import io.kagboton.tacoscloud.repository.TacoRepository;
 
+import io.kagboton.tacoscloud.utils.TacoResource;
+import io.kagboton.tacoscloud.utils.TacoResourceAssembler;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.hateoas.Link;
+import org.springframework.hateoas.Resource;
+import org.springframework.hateoas.Resources;
+import org.springframework.hateoas.mvc.ControllerLinkBuilder;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Optional;
+
+import static org.springframework.hateoas.mvc.ControllerLinkBuilder.methodOn;
 
 @RestController
 @RequestMapping(path = "/design", produces = "application/json")
@@ -18,6 +28,9 @@ import java.util.Optional;
 public class DesignTacoController {
 
     private TacoRepository tacoRepository;
+
+    @Value("${server.port}")
+    private String serverPort;
 
     @Autowired
     public DesignTacoController(TacoRepository tacoRepository) {
@@ -31,9 +44,17 @@ public class DesignTacoController {
     }
 
     @GetMapping("/recent")
-    public Iterable<Taco> getRecentTacos(){
+    public Resources<Resource<Taco>> getRecentTacos(){
         PageRequest page = PageRequest.of(0, 12, Sort.by("createdAt").descending()); // page request object
-        return tacoRepository.findAll(page).getContent();
+
+        List<Taco> tacos = tacoRepository.findAll(page).getContent(); // get the recent tacos list
+
+        Resources<Resource<Taco>> recentResources = Resources.wrap(tacos);
+
+        recentResources.add(
+                new Link("http://localhost:" + serverPort +"/design/recent", "recents"));
+
+        return recentResources;
     }
 
     @GetMapping("/{id}")

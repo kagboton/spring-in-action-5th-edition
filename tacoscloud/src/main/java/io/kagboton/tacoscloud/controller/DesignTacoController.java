@@ -41,19 +41,23 @@ public class DesignTacoController {
         return tacoRepository.save(taco);
     }
 
+
     @GetMapping("/recent")
-    public Resources<Resource<Taco>> getRecentTacos(){
+    public Resources<TacoResource> getRecentTacos(){
         PageRequest page = PageRequest.of(0, 12, Sort.by("createdAt").descending()); // page request object
 
         List<Taco> tacos = tacoRepository.findAll(page).getContent(); // get the recent tacos list
 
-        Resources<Resource<Taco>> recentResources = Resources.wrap(tacos);
+        List<TacoResource> tacoResources = new TacoResourceAssembler().toResources(tacos); // convert our Taco objects list to TacoResource objects list using TacoResourceAssembler
+
+        Resources<TacoResource> recentResources =  new Resources<TacoResource>(tacoResources);
 
         recentResources.add(
-                linkTo(methodOn(DesignTacoController.class).getRecentTacos())
-                        .withRel("recents")); // dynamic create links with ControllerLinkBuilder
+                ControllerLinkBuilder.linkTo(methodOn(DesignTacoController.class).getRecentTacos())
+                        .withRel("recents") // dynamically populate our Resources<TacoResource> with the recents links
+        );
 
-        return recentResources;
+        return recentResources; // return resources of tacoResources to take advantage of our new TacoResource type
     }
 
     @GetMapping("/{id}")

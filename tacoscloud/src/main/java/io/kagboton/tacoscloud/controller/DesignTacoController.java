@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Optional;
 
+import static org.springframework.hateoas.mvc.ControllerLinkBuilder.linkTo;
 import static org.springframework.hateoas.mvc.ControllerLinkBuilder.methodOn;
 
 @RestController
@@ -49,8 +50,7 @@ public class DesignTacoController {
         Resources<Resource<Taco>> recentResources = Resources.wrap(tacos);
 
         recentResources.add(
-                ControllerLinkBuilder.linkTo(DesignTacoController.class)
-                        .slash("recent")
+                linkTo(methodOn(DesignTacoController.class).getRecentTacos())
                         .withRel("recents")); // dynamic create links with ControllerLinkBuilder
 
         return recentResources;

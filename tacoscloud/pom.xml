@@ -44,6 +44,12 @@
             <artifactId>spring-boot-starter-hateoas</artifactId>
         </dependency>
 
+        <!-- Spring Data REST starter :: get an API for each repository interface defined -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-rest</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>org.seleniumhq.selenium</groupId>
             <artifactId>selenium-java</artifactId>

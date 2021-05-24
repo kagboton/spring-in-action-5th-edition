@@ -46,6 +46,10 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .formLogin()
                     .loginPage("/login")
 
+            .and()
+                .httpBasic()
+                    .realmName("Taco Cloud")
+
                 .and()
                 .logout()
                     .logoutSuccessUrl("/")

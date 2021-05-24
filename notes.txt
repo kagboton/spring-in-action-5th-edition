@@ -771,3 +771,488 @@ public CommandLineRunner dataLoader(IngredientRepository repo,
 
 It’s also possible to use @Profile on an entire @Configuration-annotated class.
 
+
+2. Integrated Spring
+
+We are going to learn how to integrate our Spring application with other applications
+
+Creating REST services
+We are going to use what we've learned about Spring MVC to creat RESTful endpoints with Spring MCV controllers
+We are going to use a single-page application to render information instead of server-rendered pages we created. 
+This application will communicate with the REST API we are going to create to fetch and save taco data.
+In a single-page application (SPA), the presentation is decoupled from the backend processing.
+It also open the opportunity to integrate with other applications that can consume the API.
+
+The SPA code will communicate with an API by way of HTTP requests.
+
+@GetMapping	HTTP GET requests	Reading resource data
+@PostMapping	HTTP POST requests	Creating a resource
+@PutMapping	HTTP PUT requests	Updating a resource
+@PatchMapping	HTTP PATCH requests	Updating a resource
+@DeleteMapping	HTTP DELETE requests	Deleting a resource
+@RequestMapping	General purpose request handling; HTTP method specified in the method attribute	 
+
+
+
+
+@RestController(path="/desing", produces="application/json")
+@CrossOrigin(origins="*")
+DesignTacoController{
+        ....
+        @GetMapping("/recent")
+        public Iterable<Taco> recentTacos() {
+        PageRequest page = PageRequest.of(
+            0, 12, Sort.by("createdAt").descending());
+        return tacoRepo.findAll(page).getContent();
+        }
+        ...
+}
+
+PageRequest is an object to perform paging.
+To be able to use this object in a Spring Data repository method, this repository have to extends PagingAndSortingRepository instead of CrudRepository 
+
+@RestController annotation
+The @RestController annotation serves two purposes.
+First, it’s a stereotype annotation like @Controller and @Service that marks a class for discovery by component scanning.
+But most relevant to the discussion of REST, the @RestController annotation tells Spring that all handler methods in the controller
+should have their return value written directly to the body of the response, rather than being carried in the model to a view for rendering.
+We can alternatively use @Controller like any Spring MVC controller but we'll need to annotate all of the handler methods with @ResponseBody to have the same result
+Another option would be to return a ResponseEntity object
+
+@CrossOrigin(origins="*") : this annotation includes CORS(Cors-Origin Resource Sharing) headers in the server responses. 
+Our Single-page application will be running on a separate host and/or from the API, the web browser will prevent the application from consuming the API. 
+This restriction will be overcome by the annotation.
+
+ResponseEntity<Taco> :
+If the object is found we wrap it in a ResponseEntity with an HTTP status of OK like this : return new ResponseEntity<>(optionalTaco.get(), HttpStatus.OK);
+If the object is not found, we wrap null in a ResponseEntity with an HTTP status of NOT_FOUND like this :return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
+
+
+Sending data to the server
+
+@PostMapping(consumes = "application/json")
+@ResponseStatus(HttpStatus.CREATED)
+public Taco postTaco(@RequestBody Taco taco){
+   return tacoRepository.save(taco);
+}
+- consumes attribute is to request input what produces is to request output. Here consumes says that the method will only handle requests whonse Content-types mathces application/json.
+- @RequestBody indicates that the body of the request should bec converted to a Taco object and bound to the parameter.
+
+
+Updating data on the server
+
+- PUT : perfom a wholesale replacement opteration rather than an update operation
+- PATCH : perform a patch or a partial update of the resource data
+
+For a patch, we should put in our patch method code, what field requires to be updated instead of completely replacing the whole object we are updating (thats what PUT do).
+This approach allows the client to only send the properties that should be changed and enables the server to retain existing data for any properties not specified byt hte client
+The patch request handler would have to be written to handle patch instructions instead of the domain data.
+
+@PatchMapping(path="/{orderId}", consumes="application/json")
+public Order patchOrder(@PathVariable("orderId") Long orderId,
+                        @RequestBody Order patch) {
+
+  Order order = repo.findById(orderId).get();
+  if (patch.getDeliveryName() != null) {
+    order.setDeliveryName(patch.getDeliveryName());
+  }
+  ...
+  // patch logic
+
+  return repo.save(order);
+}
+
+
+Deleting data from the server
+
+@DeleteMapping("/{orderId}")
+@ResponseStatus(code=HttpStatus.NO_CONTENT)
+public void deleteOrder(@PathVariable("orderId") Long orderId) {
+  try {
+    repo.deleteById(orderId);
+  } catch (EmptyResultDataAccessException e) {}
+}
+
+Enabling hypermedia
+
+HATEOAS : Hypermedia as the Engine of Application State is a means of creating self-describing APIs wherein resources returned from an API contain links to related resources
+
+This enables clients to navigate an API with minimal understanding of the API’s URLs. Instead, it understands relationships between the resources served by the API 
+and uses its understanding of those relationships to discover the API’s URLs as it traverses those relationships.
+
+A list of taco resource with no hyperlinks
+[
+  {
+    "id": 4,
+    "name": "Veg-Out",
+    "createdAt": "2018-01-31T20:15:53.219+0000",
+    "ingredients": [
+      {"id": "FLTO", "name": "Flour Tortilla", "type": "WRAP"},
+      {"id": "COTO", "name": "Corn Tortilla", "type": "WRAP"},
+      {"id": "TMTO", "name": "Diced Tomatoes", "type": "VEGGIES"},
+      {"id": "LETC", "name": "Lettuce", "type": "VEGGIES"},
+      {"id": "SLSA", "name": "Salsa", "type": "SAUCE"}
+    ]
+  },
+  ...
+]
+
+VS
+
+Without hypermedia, the client doesn’t know the operation to HTTP perform.
+If the API is enabled with hypermedia, the API will describe its own URLs, relieving the client of needing to be hardcoded with that knowledge.
+
+A list of taco resource that includes hyperlinks
+
+{
+  "_embedded": {
+    "tacoResourceList": [
+      {
+        "name": "Veg-Out",
+        "createdAt": "2018-01-31T20:15:53.219+0000",
+        "ingredients": [
+          {
+            "name": "Flour Tortilla", "type": "WRAP",
+            "_links": {
+              "self": { "href": "http://localhost:8080/ingredients/FLTO" }
+            }
+          },
+          {
+            "name": "Corn Tortilla", "type": "WRAP",
+            "_links": {
+              "self": { "href": "http://localhost:8080/ingredients/COTO" }
+            }
+          },
+          {
+            "name": "Diced Tomatoes", "type": "VEGGIES",
+            "_links": {
+              "self": { "href": "http://localhost:8080/ingredients/TMTO" }
+            }
+          },
+          {
+            "name": "Lettuce", "type": "VEGGIES",
+            "_links": {
+              "self": { "href": "http://localhost:8080/ingredients/LETC" }
+            }
+          },
+          {
+            "name": "Salsa", "type": "SAUCE",
+            "_links": {
+              "self": { "href": "http://localhost:8080/ingredients/SLSA" }
+            }
+          }
+        ],
+        "_links": {
+          "self": { "href": "http://localhost:8080/design/4" }
+        }
+      },
+
+      ...
+    ]
+  },
+  "_links": {
+    "recents": {
+      "href": "http://localhost:8080/design/recent"
+    }
+  }
+}
+
+This particular flavor of HATEOAS is known as HAL (Hypertext Application Language; http://stateless.co/hal_specification.html),
+a simple and commonly used format for embedding hyperlinks in JSON responses.
+
+The Spring HATEOAS project brings hyperlink support to Spring. It offers a set of classes and resource assemblers that can be used to add links
+ to resources before returning them from a Spring MVC controller.
+
+To enable hypermedia in the Taco Cloud API, you’ll need to add the Spring HATEOAS starter dependency to the build:
+
+<dependency>
+  <groupId>org.springframework.boot</groupId>
+  <artifactId>spring-boot-starter-hateoas</artifactId>
+</dependency>
+
+This starter not only adds Spring HATEOAS to the project’s classpath, but also provides for autoconfiguration to enable Spring HATEOAS. 
+
+
+Adding hyperlinks
+
+Spring HATEOAS provides two primary types that represent hyperlinked resources:
+- Resource : reprensents a single resource
+- Resources : is a collection of resources
+They are capable of carrying links to other resources. When returned from a Spring MVC REST controller method, they links they carry will be includedin the JSON (or XML)
+received by the client.
+
+Ex:
+@GetMapping("/recent")
+public Resources<Resource<Taco>> recentTacos() {
+  PageRequest page = PageRequest.of(
+          0, 12, Sort.by("createdAt").descending());
+
+  List<Taco> tacos = tacoRepo.findAll(page).getContent();
+  Resources<Resource<Taco>> recentResources = Resources.wrap(tacos);
+
+  recentResources.add(
+      new Link("http://localhost:8080/design/recent", "recents"));
+  return recentResources;
+}
+
+ControllerLinkBuilder : 
+This link builder know what the hostname is without we having to hardcode it. 
+And it provides a handy fluent API to help us build links relative to the base URL of any controller.
+
+ControllerLinkBuilder uses the controller’s base path as the foundation of the Link object we’re creating.
+
+Resources<Resource<Taco>> recentResources = Resources.wrap(tacos);
+recentResources.add(
+  ControllerLinkBuilder.linkTo(DesignTacoController.class)
+                       .slash("recent")
+                       .withRel("recents"));
+
+slash(): literally appends a slash (/) and the given value to the URL
+withRel(): is to specifiy the name of the relation
+
+We can also build the link without using the slash() method like this : 
+
+Resources<Resource<Taco>> recentResources = Resources.wrap(tacos);
+recentResources.add(
+        linkTo(methodOn(DesignTacoController.class).recentTacos())
+        .withRel("recents"));
+
+methodOn(): another ControllerLinkBuilder method, it takes the controller class and lets you make a call to the recentTacos() method,
+which is intercepted by ControllerLinkBuilder and used to determine not only the controller’s base path, but also the path mapped to recentTacos()
+
+Creating resource assemblers
+
+We need to add links to the taco resource contained within the list of taco
+Here we are going to create a TacoResource class. This class isnt that different from the Taco domain but extends ResourceSupport to 
+inherit a list of Link object and methods to manage the list of links. 
+The TacoResource resource class has a constructor thay accepts a Taco and copies the pertinent properties from the Taco to its own properties (leaving out the id property). 
+It makes it easy to convert a single Taco object to a TacoResource. 
+
+package io.kagboton.tacoscloud.utils;
+
+import io.kagboton.tacoscloud.domain.Ingredient;
+import io.kagboton.tacoscloud.domain.Taco;
+import lombok.Getter;
+import org.springframework.hateoas.ResourceSupport;
+
+import java.util.Date;
+import java.util.List;
+
+public class TacoResource extends ResourceSupport {
+
+    @Getter
+    private final String name;
+    @Getter
+    private final Date createdAt;
+    @Getter
+    private  final List<Ingredient> ingredients;
+
+    public TacoResource(Taco taco) {
+        this.name = taco.getName();
+        this.createdAt = taco.getCreatedAt();
+        this.ingredients = taco.getIngredients();
+    }
+}
+
+
+We also need to create a resource assembler
+
+package io.kagboton.tacoscloud.utils;
+
+import io.kagboton.tacoscloud.controller.DesignTacoController;
+import io.kagboton.tacoscloud.domain.Taco;
+import org.springframework.hateoas.mvc.ResourceAssemblerSupport;
+
+public class TacoResourceAssembler extends ResourceAssemblerSupport<Taco, TacoResource> {
+
+    public TacoResourceAssembler() {
+        super(DesignTacoController.class, TacoResource.class);
+    }
+
+    @Override
+    protected TacoResource instantiateResource(Taco taco) {
+        return new TacoResource(taco);
+    }
+
+     @Override
+    public TacoResource toResource(Taco taco) {
+        return createResourceWithId(taco.getId(), taco);
+    }
+}
+
+TacoResourceAssembler has a default constructor that informs the superclass (ResourceAssemblerSupport) that it will be using DesignTacoController to determine the base path 
+for any URLs in links it creates when creating TacoResource
+
+The instantiateResource() method is overridden to instantiate a TacoResource given a Taco. This method would be optional if TacoResource had a default constructor.
+In this case, however, TacoResource requires construction with a Taco, so you’re required to override it.
+
+Finally, the toResource() method is the only method that’s strictly mandatory when extending ResourceAssemblerSupport. 
+Here you’re telling it to create a TacoResource object from a Taco,  and to automatically give it a self link with the URL being derived from the Taco object’s id property.
+
+toResource() appears to have a similar purpose to instantiateResource(), but they serve slightly different purposes. 
+instantiateResource() is intended to only instantiate a Resource object, toResource() is intended not only to create the Resource object, but also to populate it with links. Under the covers, toResource() will call instantiateResource().
+
+
+@GetMapping("/recent")
+    public Resources<TacoResource> getRecentTacos(){
+        PageRequest page = PageRequest.of(0, 12, Sort.by("createdAt").descending()); // page request object
+
+        List<Taco> tacos = tacoRepository.findAll(page).getContent(); // get the recent tacos list
+
+        List<TacoResource> tacoResources = new TacoResourceAssembler().toResources(tacos); // convert our Taco objects list to TacoResource objects list using TacoResourceAssembler
+
+        Resources<TacoResource> recentResources =  new Resources<TacoResource>(tacoResources);
+
+        recentResources.add(
+                ControllerLinkBuilder.linkTo(methodOn(DesignTacoController.class).getRecentTacos())
+                    .withRel("recents") // dynamically populate our Resources<TacoResource> with the recents links 
+        );
+
+        return recentResources; // return resources of tacoResources to take advantage of our new TacoResource type  
+    }
+
+
+Rather than return a Resources<Resource<Taco>>, recentTacos() now returns a Resources<TacoResource> to take advantage of our new TacoResource type. 
+At this point, a GET request to /design/recent will produce a list of tacos, each with a self link and a recents link on the list itself. 
+But the ingredients will still be without a link. To address that, we'll create a new resource and resource assembler for ingredients.
+We also need to change TacoResource so that it carries IngredientResource instead of Ingredient objects. We are going to perform this change by using IngredientResourceAssembler toResource() method.
+
+Our recent tacos list is now completely outfitted with hyperlinks, not only for itself (the recents link), but also for all of its taco entries and the ingredients of those tacos.
+
+
+Naming embedded relationships
+
+By annotating TacoResource with @Relation, you can specify how Spring HATEOAS should name the field in the resulting JSON
+
+@Relation(value="taco", collectionRelation="tacos")
+public class TacoResource extends ResourceSupport {
+  ...
+}
+
+Enabling data-backed services
+
+Spring Data REST is another member of the Spring Data family that automatically creates REST APIs for repositories created by Spring Data.
+By doing little more than adding Spring Data REST to our build, we get an API with operations for each repository interface we’ve defined.
+
+To start using Spring Data REST, we add the following dependency to our build:
+<dependency>
+  <groupId>org.springframework.boot</groupId>
+  <artifactId>spring-boot-starter-data-rest</artifactId>
+</dependency>
+
+By doing nothing more than adding this dependency to our build, we’re not only getting an endpoint for Spring Data repositories (ingredients, tacos, orders, users), 
+but the resources that come back also contain hyperlinks!
+We should know that every endpoint and option that Spring Data REST create support POST, PUT, and DELETE methods.
+
+One thing we might want to do is set a base path for the API so that its endpoints are distinct and don’t collide with any controllers we write.
+To adjust the base path for the API, set the spring.data.rest.base-path property:
+Ex:
+spring:
+  data:
+    rest:
+      base-path: /api
+
+This sets the base path for Spring Data REST endpoints to /api
+
+Adjusting resource paths and relation names
+Sometimes, such as with “taco”, Spring Data REST trips up on a word and the pluralized version isn’t quite right. 
+EX: Spring Data REST pluralized “taco” as “tacoes”
+
+Spring Data REST also exposes a home resource that has links for all exposed endpoints : $ curl localhost:8080/api
+
+The @RestResource annotation lets us give the entity any relation name and path we want.
+Ex:
+   @Data
+   @Entity
+   @RestResource(rel="tacos", path="tacos")
+   public class Taco {
+   ...
+   }
+
+
+Paging and sorting
+
+ "http://localhost:9090/api/tacoes{?page,size,sort}"
+
+ This link offers optional page, size, and sort parameters.
+ By default, requests to a collection resource such as /api/tacos will return up to 20 items per page from the first page.
+ We can adjust the page size and the page displayed by specifying the page and size parameters in our request.
+
+ $ curl "localhost:8080/api/tacos?size=5" :: request the first page of tacos where the page size is 5
+ $ curl "localhost:8080/api/tacos?size=5&page=1" :: request the second page of tacos where the page size is 5
+
+ Notice that the page parameter is zero-based, which means that asking for page 1 is actually asking for the second page. 
+
+ The sort parameter lets you sort the resulting list by any property of the entity
+
+ $ curl "localhost:8080/api/tacos?sort=createdAt,desc&page=0&size=12" :: fetch the 12 most recently created tacos, 
+ the sort parameter specifies that we should sort by the createdDate property and that it should be sorted in descending order 
+
+
+Adding custom endpoints
+
+Spring Data REST is great at creating endpoints for performing CRUD operations against Spring Data repositories. 
+But sometimes we need to break away from the default CRUD API and create an endpoint that gets to the core of the problem.
+
+When we write our own API controllers, their endpoints seem somewhat detached from the Spring Data REST endpoints in a couple of ways:
+
+- Our own controller endpoints aren’t mapped under Spring Data REST’s base path. We could force their mappings to be prefixed with whatever base path we want, 
+  including the Spring Data REST base path, but if the base path were to change, we’d need to edit the controller’s mappings to match.
+- Any endpoints we define in our own controllers won’t be automatically included as hyperlinks in the resources returned by Spring Data REST endpoints. 
+  This means that clients won’t be able to discover our custom endpoints with a relation name.
+
+To resolve that problem Spring Data REST includes @RepositoryRestController
+
+@RepositoryRestController : all mappings in a @RepositoryRestController-annotated controller will have their path prefixed with the value 
+of the spring.data.rest.base-path property (which we’ve configured as /api)
+
+One important thing to notice is that although @RepositoryRestController is named similarly to @RestController, it doesn’t carry the same semantics as @RestController.
+Specifically, it doesn’t ensure that values returned from handler methods are automatically written to the body of the response. 
+Therefore we need to either annotate the method with @ResponseBody or return a ResponseEntity that wraps the response data. 
+We should then return a ResponseEntity.
+
+With RecentTacosController in play, requests for /api/tacos/recent will return up to 15 of the most recently created tacos, 
+without the need for paging and sorting parameters in the URL. 
+But it still doesn’t appear in the hyperlinks list when requesting /api/tacos. Let’s fix that.
+
+Adding custom hyperlinks to Spring Data endpoints
+By declaring a resource processor bean, however, we can add links to the list of links that Spring Data REST automatically includes.
+Spring Data HATEOAS offers ResourceProcessor, an interface for manipulating resources before they’re returned through the API.
+For our purposes, we need an implementation of ResourceProcessor that adds a recents link to any resource of type PagedResources<Resource <Taco>> 
+(the type returned for the /api/tacos endpoint). The next listing shows a bean declaration method that defines such a ResourceProcessor.
+
+@Bean
+public ResourceProcessor<PagedResources<Resource<Taco>>>
+  tacoProcessor(EntityLinks links) {
+
+  return new ResourceProcessor<PagedResources<Resource<Taco>>>() {
+    @Override
+    public PagedResources<Resource<Taco>> process(
+                        PagedResources<Resource<Taco>> resource) {
+      resource.add(
+          links.linkFor(Taco.class)
+               .slash("recent")
+               .withRel("recents"));
+      return resource;
+    }
+  };
+}
+
+The ResourceProcessor is defined as an anonymous inner class and declared as a bean to be created in the Spring application context.
+Spring HATEOAS will discover this bean (as well as any other beans of type ResourceProcessor) automatically and will apply them to the appropriate resources.
+In this case, if a PagedResources<Resource<Taco>> is returned from a controller, it will receive a link for the most recently created tacos. 
+This includes the response for requests for /api/tacos.
+
+
+Summary :
+
+J'ai apris que l'annotation @RestController permt de creer une API qui renvoi des informations dans son body. L'annotation @Controller peu le faire mais les 
+methodes implementee au sein du controleur doivent revoyer une response entity pour simuler le meme fonctionnement que @RestController.
+
+J'ai apris essanetiellement que pour que le client d'une API puisse automatiquement detecter et utiliser les liens disponible au sein d'une API, il faut utiliser les 
+hyperliens. 
+Les hypermedia sont geres par Spring HATEOAS. Au lieu de retourner une simple list d'objets, ou une response entity, on renvoie une liste de ressource a laquelle on 
+injecte les hyperliens generes automatiquement par les methodes (linkFor, methodOn, slash, etc.) de la classe ControllerLinkBuilder.
+
+J'ai egalement appris que Spring Data REST permet de generer une API de toutes les repositories gerees au sein du projet. En ajoutant simplement la dependance maven
+du starter Spring Data REST, on otbtien une API a laquelle on peu appliquer toute les methodes HTTP connues (POST, GET, PUT, PATCH, DELETE).

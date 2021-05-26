@@ -2,7 +2,7 @@ package io.kagboton.tacoscloud.controller;
 
 import java.util.Map;
 
-import io.kagboton.tacoscloud.utils.DiscountCodeProps;
+import io.kagboton.tacoscloud.utils.holders.DiscountCodeProps;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;

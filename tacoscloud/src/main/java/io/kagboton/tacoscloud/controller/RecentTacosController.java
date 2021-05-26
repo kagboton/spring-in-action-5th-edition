@@ -2,8 +2,8 @@ package io.kagboton.tacoscloud.controller;
 
 import io.kagboton.tacoscloud.domain.Taco;
 import io.kagboton.tacoscloud.repository.TacoRepository;
-import io.kagboton.tacoscloud.utils.TacoResource;
-import io.kagboton.tacoscloud.utils.TacoResourceAssembler;
+import io.kagboton.tacoscloud.utils.resources.TacoResource;
+import io.kagboton.tacoscloud.utils.resources.TacoResourceAssembler;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.rest.webmvc.RepositoryRestController;

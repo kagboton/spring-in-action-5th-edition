@@ -3,16 +3,12 @@ package io.kagboton.tacoscloud.controller;
 import io.kagboton.tacoscloud.domain.Taco;
 import io.kagboton.tacoscloud.repository.TacoRepository;
 
-import io.kagboton.tacoscloud.utils.TacoResource;
-import io.kagboton.tacoscloud.utils.TacoResourceAssembler;
+import io.kagboton.tacoscloud.utils.resources.TacoResource;
+import io.kagboton.tacoscloud.utils.resources.TacoResourceAssembler;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
-import org.springframework.hateoas.Link;
-import org.springframework.hateoas.Resource;
 import org.springframework.hateoas.Resources;
-import org.springframework.hateoas.mvc.ControllerLinkBuilder;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -53,7 +49,7 @@ public class DesignTacoController {
         Resources<TacoResource> recentResources =  new Resources<TacoResource>(tacoResources);
 
         recentResources.add(
-                ControllerLinkBuilder.linkTo(methodOn(DesignTacoController.class).getRecentTacos())
+                linkTo(methodOn(DesignTacoController.class).getRecentTacos())
                         .withRel("recents") // dynamically populate our Resources<TacoResource> with the recents links
         );
 

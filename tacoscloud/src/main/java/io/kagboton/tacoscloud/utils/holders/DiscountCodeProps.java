@@ -1,4 +1,4 @@
-package io.kagboton.tacoscloud.utils;
+package io.kagboton.tacoscloud.utils.holders;
 
 import java.util.HashMap;
 import java.util.Map;

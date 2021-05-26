@@ -1,4 +1,4 @@
-package io.kagboton.tacoscloud.utils;
+package io.kagboton.tacoscloud.utils.resources;
 
 import io.kagboton.tacoscloud.domain.Ingredient;
 import io.kagboton.tacoscloud.domain.Ingredient.Type;

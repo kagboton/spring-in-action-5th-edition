@@ -1,4 +1,4 @@
-package io.kagboton.tacoscloud.utils;
+package io.kagboton.tacoscloud.utils.holders;
 
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;

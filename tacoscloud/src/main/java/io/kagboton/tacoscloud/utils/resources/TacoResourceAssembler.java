@@ -1,4 +1,4 @@
-package io.kagboton.tacoscloud.utils;
+package io.kagboton.tacoscloud.utils.resources;
 
         import io.kagboton.tacoscloud.controller.DesignTacoController;
         import io.kagboton.tacoscloud.domain.Taco;

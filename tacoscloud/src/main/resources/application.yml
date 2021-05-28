@@ -9,6 +9,9 @@ spring:
   data:
     rest:
       base-path: /api
+  jms:
+    template:
+      default-destination: tacocloud.order.queue
 
 taco:
   orders:
@@ -17,3 +20,15 @@ taco:
   discount:
     codes:
       abcdef: 10
+
+logging:
+  level:
+    tacos: DEBUG
+
+---
+spring:
+  profiles: prod
+
+logging:
+  level:
+    tacos: WARN

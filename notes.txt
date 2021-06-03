@@ -1571,8 +1571,6 @@ private Message addOrderSource(Message message) throws JMSException {
   return message;
 }
 
-
-
 Receiving JMS messages
 
 We have 2 choices : 
@@ -1588,7 +1586,6 @@ Message receive(String destinationName) throws JmsException;
 Object receiveAndConvert() throws JmsException;
 Object receiveAndConvert(Destination destination) throws JmsException;
 Object receiveAndConvert(String destinationName) throws JmsException;
-
 
 The receive() methods receive a raw Message, whereas the receiveAndConvert() methods use a configured message converter to convert messages into domain types. 
 

@@ -1614,3 +1614,27 @@ public class JmsOrderReceiver implements OrderReceiver {
     return (Order) converter.fromMessage(message);
   }
 }
+
+Here the receive() method returns an unconverted Message. We use an injected message converter to convert the message to be able to get the Order object.
+
+When we only care about the message’s payload, receiveAndConvert() is a lot simpler.
+The next listing shows how JmsOrderReceiver could be reworked to use receiveAndConvert() instead of receive().
+
+package tacos.kitchen.messaging.jms;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jms.core.JmsTemplate;
+import org.springframework.stereotype.Component;
+
+@Component
+public class JmsOrderReceiver implements OrderReceiver {
+  private JmsTemplate jms;
+
+  @Autowired
+  public JmsOrderReceiver(JmsTemplate jms) {
+    this.jms = jms;
+  }
+
+  public Order receiveOrder() {
+    return (Order) jms.receiveAndConvert("tacocloud.order.queue");
+  }
+}

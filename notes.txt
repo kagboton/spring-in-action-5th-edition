@@ -1638,3 +1638,49 @@ public class JmsOrderReceiver implements OrderReceiver {
     return (Order) jms.receiveAndConvert("tacocloud.order.queue");
   }
 }
+
+How a push model works by declaring a JMS listener ? Declaring message listeners
+
+Unlike the pull model, where an explicit call to receive() or receiveAndConvert() was required to receive a message, 
+a message listener is a passive component that’s idle until a message arrives.
+
+To create a message listener that reacts to JMS messages, we simply must annotate a method in a component with @JmsListener
+
+
+package tacos.kitchen.messaging.jms.listener;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jms.annotation.JmsListener;
+import org.springframework.stereotype.Component;
+
+@Component
+public class OrderListener {
+  private KitchenUI ui;
+
+  @Autowired
+  public OrderListener(KitchenUI ui) {
+    this.ui = ui;
+  }
+
+  @JmsListener(destination = "tacocloud.order.queue")
+  public void receiveOrder(Order order) {
+    ui.displayOrder(order);
+  }
+}
+
+The receiveOrder() method is annotated with JmsListener to “listen” for messages on the tacocloud.order.queue destination. 
+It doesn’t deal with JmsTemplate, nor is it explicitly invoked by our application code.
+Instead, framework code within Spring waits for messages to arrive on the specified destination, and when they arrive, the receiveOrder() method is 
+invoked automatically with the message’s Order payload as a parameter.
+
+In Spring MVC, methods annotated with @GetMapping or @PostMapping react to requests to a specified path.
+Similarly, methods that are annotated with @JmsListener react to messages that arrive in a destination.
+
+Message listeners are often touted as the best choice because they don’t block and are able to handle multiple messages quickly.
+They’re a perfect fit when messages can be handled quickly. But when the message handlers need to be able to ask for more messages on their own timing, 
+the pull model offered by JmsTemplate seems more fitting
+
+JMS has a few shortcomings, not the least of which is that as a Java specification its use is limited to Java applications. 
+Newer messaging options such as RabbitMQ and Kafka address these shortcomings and are available for other languages and platforms beyond the JVM. 
+
+
+Working with RabbitMQ and AMQP

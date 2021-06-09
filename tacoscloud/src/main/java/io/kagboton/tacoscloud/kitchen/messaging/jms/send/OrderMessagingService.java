@@ -1,4 +1,4 @@
-package io.kagboton.tacoscloud.messaging;
+package io.kagboton.tacoscloud.messaging.jms;
 
 import io.kagboton.tacoscloud.domain.Order;
 

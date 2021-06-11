@@ -2,6 +2,7 @@ package io.kagboton.tacoscloud.controller;
 
 
 import io.kagboton.tacoscloud.domain.Order;
+import io.kagboton.tacoscloud.kitchen.messaging.jms.send.OrderMessagingService;
 import io.kagboton.tacoscloud.repository.OrderRepository;
 import io.kagboton.tacoscloud.utils.holders.OrdersProps;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -16,10 +17,12 @@ public class OrderController {
 
     private OrderRepository orderRepository;
     private OrdersProps ordersProps;
+    private OrderMessagingService orderMessagingService;
 
-    public OrderController(OrderRepository orderRepository, OrdersProps ordersProps) {
+    public OrderController(OrderRepository orderRepository, OrdersProps ordersProps, OrderMessagingService orderMessagingService) {
         this.orderRepository = orderRepository;
         this.ordersProps = ordersProps;
+        this.orderMessagingService = orderMessagingService;
     }
 
     @GetMapping(produces = "application/json")
@@ -30,6 +33,7 @@ public class OrderController {
     @PostMapping(consumes = "application/json")
     @ResponseStatus(HttpStatus.CREATED)
     public Order postOrder(@RequestBody Order order){
+        orderMessagingService.sendOrder(order);
         return orderRepository.save(order);
     }
 

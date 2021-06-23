@@ -1,4 +1,4 @@
-package io.kagboton.tacoscloud.messaging.jms;
+package io.kagboton.tacoscloud.kitchen.messaging.jms;
 
 import io.kagboton.tacoscloud.domain.Order;
 import org.springframework.context.annotation.Bean;
